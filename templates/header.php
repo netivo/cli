@@ -5,8 +5,8 @@
  *  Creation date: ${DATE}
  */
 
-if (!defined('ABSPATH')) {
-    header('HTTP/1.0 404 Forbidden');
+if ( ! defined( 'ABSPATH' ) ) {
+    header( 'HTTP/1.0 404 Forbidden' );
     exit;
 }
 ?>
@@ -21,5 +21,4 @@ if (!defined('ABSPATH')) {
     <?php wp_head() ?>
 </head>
 <body <?php body_class(); ?>>
-<div id="wrapper">
-    <div id="content">
+

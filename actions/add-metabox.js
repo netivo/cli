@@ -13,6 +13,8 @@ import * as get_data from "./../lib/get-data.js";
 import log from "./../lib/log.js";
 import createConfig from "../lib/create-config.js";
 import checkConfig from "../lib/check-config.js";
+import parser from "./../lib/config-parser.js";
+import createClass from "./../lib/create-class.js";
 
 let options = {
     name: '',
@@ -25,8 +27,53 @@ let options = {
     viewName: '',
 }
 
-let parse_options = opt => {
+let project_config = null;
 
+let parse_options = opt => {
+    let classData = {
+        name: 'Test',
+        parent: 'MetaBox',
+        attributes: [
+            {
+                name: '\\Netivo\\Attributes\\View',
+                value: 'test'
+            }
+        ],
+        properties: [
+            {
+                name: 'id',
+                type: 'string',
+                access: 'protected',
+                value: 'nt_test',
+                docblock: 'Id of the metabox is test'
+            },
+            {
+                name: 'screen',
+                type: 'string|array',
+                access: 'protected',
+                value: ['post', 'page']
+            }
+        ],
+        methods: [
+            {
+                name: 'save',
+                access: 'public',
+                type: 'mixed',
+                params: [
+                    {
+                        name: 'post_id',
+                        type: 'int',
+                        description: 'Is of the saved post'
+                    }
+                ],
+                body: 'return $post_id;',
+                docblock: 'Method where the saving process is done. Use it in metabox to save the data.'
+            }
+        ]
+    }
+    let class_content = createClass(classData);
+
+    console.log(class_content)
 };
 
 let add_metabox = () => {
@@ -43,7 +90,8 @@ if(!fs.existsSync('netivo.json')) {
         initial: true
     }).then(val => {
         if(val.value) {
-            createConfig().then(() => {
+            createConfig().then((config) => {
+                project_config = config;
                 add_metabox();
             });
         }
@@ -51,7 +99,8 @@ if(!fs.existsSync('netivo.json')) {
         log.log_error(error);
     })
 } else {
-    checkConfig().then(() => {
+    checkConfig().then(config => {
+        project_config = config;
         add_metabox();
     }).catch(error => {
         log.log_error(error);

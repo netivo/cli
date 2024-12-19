@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
 
+import createClass from "../lib/create-class.js";
+
 let options = {
     name: '',
     description: '',
@@ -23,12 +25,12 @@ import * as yaml from "js-yaml";
 import {parse, stringify} from "envfile";
 import * as path from "node:path";
 import {replaceInFileSync} from 'replace-in-file';
+import _ from "lodash";
 
 import * as get_data from "./../lib/get-data.js";
 import log from "./../lib/log.js";
 
 import * as spawn from "cross-spawn";
-
 const __dirname = import.meta.dirname;
 
 let create_project = (opt) => {
@@ -71,6 +73,7 @@ let create_files = () => {
     create_docker();
     create_composer_json();
     create_php_structure();
+    create_config_file();
 }
 
 let create_package_json = () => {
@@ -145,7 +148,7 @@ let create_docker = () => {
             },
             wordpress: {
                 depends_on: ['database'],
-                image: "wordpress:php8.2-apache",
+                image: "wordpress:php8.3-apache",
                 container_name: "${PROJECT_NAME}_wp",
                 extra_hosts: ["${WORDPRESS_HOST}:127.0.0.1"],
                 ports: ["8080:80"],
@@ -242,18 +245,17 @@ let create_php_structure = () => {
     fs.mkdirSync(options.name + '/src');
     fs.mkdirSync(options.name + '/src/Theme');
     fs.mkdirSync(options.name + '/src/Theme/Admin');
+    fs.mkdirSync(options.name + '/src/views');
 
     fs.copyFileSync(path.join( path.dirname( __dirname ), 'templates','index.php'), options.name + '/index.php');
     fs.copyFileSync(path.join( path.dirname( __dirname ), 'templates','header.php'), options.name + '/header.php');
     fs.copyFileSync(path.join( path.dirname( __dirname ), 'templates','footer.php'), options.name + '/footer.php');
     fs.copyFileSync(path.join( path.dirname( __dirname ), 'templates','functions.php'), options.name + '/functions.php');
-    fs.copyFileSync(path.join( path.dirname( __dirname ), 'templates','class_main.php'), options.name + '/src/Theme/Main.php');
-    fs.copyFileSync(path.join( path.dirname( __dirname ), 'templates','class_panel.php'), options.name + '/src/Theme/Admin/Panel.php');
 
     log.log('--- Done copying files');
 
-    let search = [/\${PROJECT_NAME}/g, /\${DATE}/g, /\${NAMESPACE}/g];
-    let rep = [options.wordpress.themeName, (new Date()).toUTCString(), 'Netivo\\'+options.namespace+'\\Theme'];
+    let search = [/\${PROJECT_NAME}/g, /\${DATE}/g, /\${NAMESPACE}/g, /\${NAMESPACE_THEME}/g];
+    let rep = [options.wordpress.themeName, (new Date()).toUTCString(), 'Netivo\\'+options.namespace+'\\Theme', options.namespace];
 
     try {
         let result = replaceInFileSync({
@@ -266,6 +268,108 @@ let create_php_structure = () => {
         log.log_error('--- Error during replacing values: '+error);
     }
 
+    create_php_classes();
+}
+
+let create_php_classes = () => {
+    create_main_theme_class();
+    create_admin_panel_class();
+}
+
+let create_main_theme_class = () => {
+    let classData = {
+        project_name: options.wordpress.themeName,
+        namespace: 'Netivo\\'+options.namespace+'\\Theme',
+        use: [
+            '\\Netivo\\Core\\Theme as CoreTheme'
+        ],
+        name: 'Main',
+        parent: 'CoreTheme',
+        methods: [
+            {
+                name: 'init',
+                access: 'protected',
+                type: 'void',
+                docblock: 'Main function run on theme initialisation.',
+            }
+        ]
+    };
+
+    let classContent = createClass(classData);
+
+    fs.writeFileSync(options.name + '/src/Theme/Main.php', classContent);
+}
+
+let create_admin_panel_class = () => {
+    let classData = {
+        project_name: options.wordpress.themeName,
+        namespace: 'Netivo\\'+options.namespace+'\\Theme\\Admin',
+        use: [
+            '\\Netivo\\Core\\Admin\\Panel as CorePanel'
+        ],
+        name: 'Panel',
+        parent: 'CorePanel',
+        methods: [
+            {
+                name: 'set_vars',
+                access: 'protected',
+                type: 'void',
+                docblock: 'Method run before admin panel initializes to setup variables',
+            },
+            {
+                name: 'init',
+                access: 'protected',
+                type: 'void',
+                docblock: 'Method run on admin panel initialisation',
+            },
+            {
+                name: 'custom_header',
+                access: 'protected',
+                type: 'void',
+                params: [
+                    {
+                        name: 'page'
+                    }
+                ],
+                docblock: 'Method to define admin scripts and styles',
+            }
+        ]
+    };
+
+    let classContent = createClass(classData);
+
+    fs.writeFileSync(options.name + '/src/Theme/Admin/Panel.php', classContent);
+}
+
+let create_config_file = () => {
+    log.log('--- Creating netivo.json');
+    let structure = {
+        "project_name": options.wordpress.themeName,
+        "namespace": options.namespace,
+        "view_path": 'src/views',
+        timestamp: null,
+        modules: {
+            admin: {
+                metabox: [],
+                pages: [],
+                gutenberg: [],
+                bulk: []
+            },
+            database: [],
+            endpoint: [],
+            gutenberg: [],
+            rest: [],
+            widget: [],
+            customizer: [],
+            woocommerce: {
+                product_type: [],
+                product_tabs: []
+            }
+        }
+    }
+    let json_string = JSON.stringify(structure, null, 2);
+    fs.writeFileSync(options.name+'/netivo.json', json_string);
+    log.log('--- Done');
 }
 
 let run_commands = () => {

@@ -18,6 +18,7 @@ To run this script you need to run command:
 
 In place of operation you must provide one of the following actions:
 - `create-project` - Action which creates WordPress theme project.
+- `add-metabox` - Action which creates MetaBox in the WordPress project
 
 Default action is: `create-project`
 

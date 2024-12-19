@@ -14,8 +14,9 @@ require_once "vendor/autoload.php";
 \${NAMESPACE}\Main::$admin_panel = \${NAMESPACE}\Admin\Panel::class;
 \${NAMESPACE}\Main::get_instance();
 
-if( ! function_exists( '${NAMESPACE}' ) ) {
-	function ${namespace}(){
-		return \${namespace}\Main::get_instance();
+
+if( ! function_exists( '${NAMESPACE_THEME}' ) ) {
+	function ${NAMESPACE_THEME}(){
+		return \${NAMESPACE}\Main::get_instance();
 	}
 }

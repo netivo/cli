@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
 
+import createClass from "../lib/create-class.js";
+
 let options = {
     name: '',
     description: '',
@@ -22,36 +24,36 @@ import fs from "fs";
 import * as yaml from "js-yaml";
 import {parse, stringify} from "envfile";
 import * as path from "node:path";
-import glog from "fancy-log";
 import {replaceInFileSync} from 'replace-in-file';
+import _ from "lodash";
 
 import * as get_data from "./../lib/get-data.js";
+import log from "./../lib/log.js";
 
 import * as spawn from "cross-spawn";
-
 const __dirname = import.meta.dirname;
 
 let create_project = (opt) => {
-    file_log('--- Creating project')
+    log.log('--- Creating project')
     options = opt;
     if(fs.existsSync(options.name)) {
         let files = fs.readdirSync(options.name);
         if(files.length > 0) {
-            file_log('Directory already exists and is not empty!');
+            log.log('Directory already exists and is not empty!');
             process.exit();
         }
     } else {
         fs.mkdirSync(options.name);
     }
-    file_log('--- Created project directory');
+    log.log('--- Created project directory');
     create_structure();
     create_files();
     run_commands();
-    file_log('--- Project created');
+    log.log('--- Project created');
 };
 
 let create_structure = () => {
-    file_log('--- Creating project structure');
+    log.log('--- Creating project structure');
 
     fs.mkdirSync(options.name + '/config');
     fs.mkdirSync(options.name + '/sources');
@@ -62,7 +64,7 @@ let create_structure = () => {
     fs.mkdirSync(options.name + '/sources/sass');
     fs.mkdirSync(options.name + '/sources/gutenberg');
 
-    file_log('--- Done');
+    log.log('--- Done');
 }
 
 let create_files = () => {
@@ -71,10 +73,11 @@ let create_files = () => {
     create_docker();
     create_composer_json();
     create_php_structure();
+    create_config_file();
 }
 
 let create_package_json = () => {
-    file_log('--- Creating package.json');
+    log.log('--- Creating package.json');
     let structure = {
         "name": options.name,
         "version": "1.0.0",
@@ -94,11 +97,11 @@ let create_package_json = () => {
     }
     let json_string = JSON.stringify(structure, null, 2);
     fs.writeFileSync(options.name+'/package.json', json_string);
-    file_log('--- Done');
+    log.log('--- Done');
 }
 
 let create_style_css = () => {
-    file_log('--- Creating style.css');
+    log.log('--- Creating style.css');
     let style_css =
         "/**\n" +
         " * Theme Name: "+options.wordpress.themeName+"\n" +
@@ -110,10 +113,10 @@ let create_style_css = () => {
         " */";
 
     fs.writeFileSync(options.name+'/style.css', style_css);
-    file_log('--- Done');
+    log.log('--- Done');
 }
 let create_docker = () => {
-    file_log('--- Creating docker config');
+    log.log('--- Creating docker config');
     let docker_compose = {
         version: "3.8",
         services: {
@@ -145,7 +148,7 @@ let create_docker = () => {
             },
             wordpress: {
                 depends_on: ['database'],
-                image: "wordpress:php8.2-apache",
+                image: "wordpress:php8.3-apache",
                 container_name: "${PROJECT_NAME}_wp",
                 extra_hosts: ["${WORDPRESS_HOST}:127.0.0.1"],
                 ports: ["8080:80"],
@@ -198,14 +201,14 @@ let create_docker = () => {
             to: [options.wordpress.host]
         });
     } catch (error) {
-        file_log_error('--- Error creating the proxy config file');
+        log.log_error('--- Error creating the proxy config file');
     }
 
-    file_log('--- Done');
+    log.log('--- Done');
 }
 
 let create_composer_json = () => {
-    file_log('--- Creating composer.json');
+    log.log('--- Creating composer.json');
     let full_namespace = "Netivo\\"+options.namespace+"\\Theme\\";
     let structure = {
         "name": "netivo/"+options.name,
@@ -234,26 +237,25 @@ let create_composer_json = () => {
     structure.autoload['psr-4'][full_namespace] = 'src/Theme';
     let json_string = JSON.stringify(structure, null, 2);
     fs.writeFileSync(options.name+'/composer.json', json_string);
-    file_log('--- Done');
+    log.log('--- Done');
 }
 
 let create_php_structure = () => {
-    file_log('--- Creating Wordpress files');
+    log.log('--- Creating Wordpress files');
     fs.mkdirSync(options.name + '/src');
     fs.mkdirSync(options.name + '/src/Theme');
     fs.mkdirSync(options.name + '/src/Theme/Admin');
+    fs.mkdirSync(options.name + '/src/views');
 
     fs.copyFileSync(path.join( path.dirname( __dirname ), 'templates','index.php'), options.name + '/index.php');
     fs.copyFileSync(path.join( path.dirname( __dirname ), 'templates','header.php'), options.name + '/header.php');
     fs.copyFileSync(path.join( path.dirname( __dirname ), 'templates','footer.php'), options.name + '/footer.php');
     fs.copyFileSync(path.join( path.dirname( __dirname ), 'templates','functions.php'), options.name + '/functions.php');
-    fs.copyFileSync(path.join( path.dirname( __dirname ), 'templates','class_main.php'), options.name + '/src/Theme/Main.php');
-    fs.copyFileSync(path.join( path.dirname( __dirname ), 'templates','class_panel.php'), options.name + '/src/Theme/Admin/Panel.php');
 
-    file_log('--- Done copying files');
+    log.log('--- Done copying files');
 
-    let search = [/\${PROJECT_NAME}/g, /\${DATE}/g, /\${NAMESPACE}/g];
-    let rep = [options.wordpress.themeName, (new Date()).toUTCString(), 'Netivo\\'+options.namespace+'\\Theme'];
+    let search = [/\${PROJECT_NAME}/g, /\${DATE}/g, /\${NAMESPACE}/g, /\${NAMESPACE_THEME}/g];
+    let rep = [options.wordpress.themeName, (new Date()).toUTCString(), 'Netivo\\'+options.namespace+'\\Theme', options.namespace];
 
     try {
         let result = replaceInFileSync({
@@ -261,32 +263,128 @@ let create_php_structure = () => {
             from: search,
             to: rep
         });
-        file_log('--- Done replacing values');
+        log.log('--- Done replacing values');
     } catch (error){
-        file_log_error('--- Error during replacing values: '+error);
+        log.log_error('--- Error during replacing values: '+error);
     }
 
+    create_php_classes();
+}
+
+let create_php_classes = () => {
+    create_main_theme_class();
+    create_admin_panel_class();
+}
+
+let create_main_theme_class = () => {
+    let classData = {
+        project_name: options.wordpress.themeName,
+        namespace: 'Netivo\\'+options.namespace+'\\Theme',
+        use: [
+            '\\Netivo\\Core\\Theme as CoreTheme'
+        ],
+        name: 'Main',
+        parent: 'CoreTheme',
+        methods: [
+            {
+                name: 'init',
+                access: 'protected',
+                type: 'void',
+                docblock: 'Main function run on theme initialisation.',
+            }
+        ]
+    };
+
+    let classContent = createClass(classData);
+
+    fs.writeFileSync(options.name + '/src/Theme/Main.php', classContent);
+}
+
+let create_admin_panel_class = () => {
+    let classData = {
+        project_name: options.wordpress.themeName,
+        namespace: 'Netivo\\'+options.namespace+'\\Theme\\Admin',
+        use: [
+            '\\Netivo\\Core\\Admin\\Panel as CorePanel'
+        ],
+        name: 'Panel',
+        parent: 'CorePanel',
+        methods: [
+            {
+                name: 'set_vars',
+                access: 'protected',
+                type: 'void',
+                docblock: 'Method run before admin panel initializes to setup variables',
+            },
+            {
+                name: 'init',
+                access: 'protected',
+                type: 'void',
+                docblock: 'Method run on admin panel initialisation',
+            },
+            {
+                name: 'custom_header',
+                access: 'protected',
+                type: 'void',
+                params: [
+                    {
+                        name: 'page'
+                    }
+                ],
+                docblock: 'Method to define admin scripts and styles',
+            }
+        ]
+    };
+
+    let classContent = createClass(classData);
+
+    fs.writeFileSync(options.name + '/src/Theme/Admin/Panel.php', classContent);
+}
+
+let create_config_file = () => {
+    log.log('--- Creating netivo.json');
+    let structure = {
+        "project_name": options.wordpress.themeName,
+        "namespace": options.namespace,
+        "view_path": 'src/views',
+        timestamp: null,
+        modules: {
+            admin: {
+                metabox: [],
+                pages: [],
+                gutenberg: [],
+                bulk: []
+            },
+            database: [],
+            endpoint: [],
+            gutenberg: [],
+            rest: [],
+            widget: [],
+            customizer: [],
+            woocommerce: {
+                product_type: [],
+                product_tabs: []
+            }
+        }
+    }
+    let json_string = JSON.stringify(structure, null, 2);
+    fs.writeFileSync(options.name+'/netivo.json', json_string);
+    log.log('--- Done');
 }
 
 let run_commands = () => {
-    file_log('--- Running npm install');
+    log.log('--- Running npm install');
     spawn.sync('npm', ['install'], {stdio: 'inherit', cwd: options.name})
-    file_log('--- Done');
-    file_log('--- Running composer install');
+    log.log('--- Done');
+    log.log('--- Running composer install');
     spawn.sync('composer', ['install'], {stdio: 'inherit', cwd: options.name})
-    file_log('--- Done');
-    file_log('--- Generating ssl certificates');
+    log.log('--- Done');
+    log.log('--- Generating ssl certificates');
     spawn.sync('mkcert', ['-cert-file', options.wordpress.host+'.crt', '-key-file', options.wordpress.host+'.key', options.wordpress.host], {stdio: 'inherit', cwd: options.name+'/proxy/certs'});
-    file_log('--- Done');
+    log.log('--- Done');
 }
 
-let file_log = (log) => {
-    glog('[' + (new Date()).toISOString().slice(0, 19).replace(/-/g, "/").replace("T", " ") + '] ' + log);
-};
-let file_log_error = (log) => {
-    glog.error('[' + (new Date()).toISOString().slice(0, 19).replace(/-/g, "/").replace("T", " ") + '] ' + log);
-};
 
 get_data.project().then(create_project).catch(error => {
-    file_log(error);
+    log.log(error);
 });

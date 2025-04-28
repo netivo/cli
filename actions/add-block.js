@@ -13,6 +13,7 @@ import createPhpFile from "./../lib/create-php-file.js";
 import path from "node:path";
 import {replaceInFileSync} from "replace-in-file";
 import create_php_file from "./../lib/create-php-file.js";
+import * as spawn from "cross-spawn";
 
 const __dirname = import.meta.dirname;
 
@@ -59,6 +60,9 @@ let parse_options = opt => {
     create_block_files();
 
     modify_config_file();
+
+
+    spawn.sync('npm', ['run', 'build', 'block', options.blockDir], {stdio: 'inherit'})
 };
 
 let generate_class_data = () => {
@@ -69,10 +73,10 @@ let generate_class_data = () => {
             'Netivo\\Core\\Gutenberg'
         ],
         name: options.className,
-        parent: 'MetaBox',
+        parent: 'Gutenberg',
         attributes: [
             {
-                name: 'Netivo\\Attributes\\Block',
+                name: '\\Netivo\\Attributes\\Block',
                 value: 'dist/gutenberg/' + options.blockDir
             }
         ],
@@ -170,7 +174,7 @@ let create_block_json = () => {
         "category": options.category,
         "description": options.description,
         "attributes": {},
-        "textdomain": "test",
+        "textdomain": project_config.text_domain,
     }
     if(!fs.existsSync(options.blockPath)) {
         fs.mkdirSync(options.blockPath, { recursive: true });

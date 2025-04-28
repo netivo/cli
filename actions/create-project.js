@@ -17,7 +17,8 @@ let options = {
         user: '',
         password: '',
         rootPassword: ''
-    }
+    },
+    woocommerce: false
 };
 
 import fs from "fs";
@@ -31,6 +32,7 @@ import * as get_data from "./../lib/get-data.js";
 import log from "./../lib/log.js";
 
 import * as spawn from "cross-spawn";
+import create_php_file from "../lib/create-php-file.js";
 const __dirname = import.meta.dirname;
 
 let create_project = (opt) => {
@@ -87,7 +89,7 @@ let create_package_json = () => {
             "develop": "netivo-scripts develop",
             "build": "netivo-scripts build"
         },
-        "gutenberg": "dist/admin/gutenberg",
+        "gutenberg": "dist/gutenberg",
         "author": "Netivo <biuro@netivo.pl> (http://netivo.pl)",
         "license": "ISC",
         "dependencies": {
@@ -118,7 +120,6 @@ let create_style_css = () => {
 let create_docker = () => {
     log.log('--- Creating docker config');
     let docker_compose = {
-        version: "3.8",
         services: {
             proxy: {
                 image: "nginx:1.19.10-alpine",
@@ -225,8 +226,8 @@ let create_composer_json = () => {
         ],
         "repositories": [
             {
-                "type": "vcs",
-                "url":  "git@github.com:netivo/wp-core.git"
+                "type": "composer",
+                "url":  "https://packagist.netivo.pl"
             }
         ],
         "require": {
@@ -235,6 +236,11 @@ let create_composer_json = () => {
         }
     }
     structure.autoload['psr-4'][full_namespace] = 'src/Theme';
+
+    if(options.woocommerce) {
+        structure['require']["netivo/woocommerce"] = "dev-master";
+    }
+
     let json_string = JSON.stringify(structure, null, 2);
     fs.writeFileSync(options.name+'/composer.json', json_string);
     log.log('--- Done');
@@ -250,7 +256,7 @@ let create_php_structure = () => {
     fs.copyFileSync(path.join( path.dirname( __dirname ), 'templates','index.php'), options.name + '/index.php');
     fs.copyFileSync(path.join( path.dirname( __dirname ), 'templates','header.php'), options.name + '/header.php');
     fs.copyFileSync(path.join( path.dirname( __dirname ), 'templates','footer.php'), options.name + '/footer.php');
-    fs.copyFileSync(path.join( path.dirname( __dirname ), 'templates','functions.php'), options.name + '/functions.php');
+    // fs.copyFileSync(path.join( path.dirname( __dirname ), 'templates','functions.php'), options.name + '/functions.php');
 
     log.log('--- Done copying files');
 
@@ -269,11 +275,17 @@ let create_php_structure = () => {
     }
 
     create_php_classes();
+
+    create_functions_php();
 }
 
 let create_php_classes = () => {
     create_main_theme_class();
     create_admin_panel_class();
+    if(options.woocommerce) {
+        create_woocommerce_class();
+        create_woocommerce_admin_class();
+    }
 }
 
 let create_main_theme_class = () => {
@@ -341,12 +353,89 @@ let create_admin_panel_class = () => {
     fs.writeFileSync(options.name + '/src/Theme/Admin/Panel.php', classContent);
 }
 
+let create_woocommerce_class = () => {
+    let classData = {
+        project_name: options.wordpress.themeName,
+        namespace: 'Netivo\\'+options.namespace+'\\Theme',
+        use: [
+            '\\Netivo\\WooCommerce\\WooCommerce as CoreWooCommerce',
+            '\\Netivo\\'+options.namespace+'\\Theme\\Admin\\WooCommerce as AdminWooCommerce'
+        ],
+        name: 'WooCommerce',
+        parent: 'CoreWooCommerce',
+        methods: [
+            {
+                name: 'init_child',
+                access: 'protected',
+                type: 'void',
+                docblock: 'Woocommerce child initialisation.'
+            },
+            {
+                name: 'init_child_admin',
+                access: 'protected',
+                type: 'void',
+                body: 'new AdminWooCommerce();'
+            },
+            {
+                name: 'init_vars',
+                access: 'protected',
+                type: 'void'
+            }
+        ]
+    };
+
+    let classContent = createClass(classData);
+
+    fs.writeFileSync(options.name + '/src/Theme/WooCommerce.php', classContent);
+}
+let create_woocommerce_admin_class = () => {
+    let classData = {
+        project_name: options.wordpress.themeName,
+        namespace: 'Netivo\\'+options.namespace+'\\Theme\\Admin',
+        name: 'WooCommerce',
+        methods: [
+            {
+                name: '__construct',
+                access: 'public',
+            },
+        ]
+    };
+
+    let classContent = createClass(classData);
+
+    fs.writeFileSync(options.name + '/src/Theme/Admin/WooCommerce.php', classContent);
+}
+
+let create_functions_php = () => {
+    let body = '';
+    body += 'require_once "vendor/autoload.php";\n\n';
+    body += '\\Netivo\\' + options.namespace + '\\Theme\\Main::$admin_panel = \\Netivo\\' + options.namespace + '\\Theme\\Admin\\Panel::class;\n';
+    if(options.woocommerce) {
+        body += '\\Netivo\\' + options.namespace + '\\Theme\\Main::$woocommerce_panel = \\Netivo\\' + options.namespace + '\\Theme\\WooCommerce::class;\n';
+    }
+    body += '\\Netivo\\' + options.namespace + '\\Theme\\Main::get_instance();\n\n';
+    body += 'if( ! function_exists( \'' + options.namespace + '\' ) ) {\n' +
+        '\tfunction ' + options.namespace + '(){\n' +
+        '\t\treturn \\Netivo\\' + options.namespace + '\\Theme\\Main::get_instance();\n' +
+        '\t}\n' +
+        '}';
+
+    let data = {
+        project_name: options.wordpress.themeName,
+        body: body
+    }
+
+    let file_content = create_php_file(data);
+    fs.writeFileSync(options.name + '/functions.php', file_content);
+}
+
 let create_config_file = () => {
     log.log('--- Creating netivo.json');
     let structure = {
         "project_name": options.wordpress.themeName,
         "namespace": options.namespace,
         "view_path": 'src/views',
+        "text_domain": options.wordpress.textDomain,
         timestamp: null,
         modules: {
             admin: {

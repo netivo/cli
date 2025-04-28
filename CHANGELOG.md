@@ -2,6 +2,7 @@
 
 ## Version 1.2
 - Added action for creating gutenberg blocks
+- Changed project generation to use new core modules
 
 ## Version 1.1
 - Added action for creating metaboxes

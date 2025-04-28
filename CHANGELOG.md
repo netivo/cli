@@ -1,5 +1,8 @@
 # Netivo CLI Changelog
 
+## Version 1.2
+- Added action for creating gutenberg blocks
+
 ## Version 1.1
 - Added action for creating metaboxes
 - Changed php class generating methods

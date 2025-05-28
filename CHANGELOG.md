@@ -1,5 +1,8 @@
 # Netivo CLI Changelog
 
+## Version 1.2.1
+- Composer modules version change
+
 ## Version 1.2
 - Added action for creating gutenberg blocks
 - Changed project generation to use new core modules

@@ -231,14 +231,14 @@ let create_composer_json = () => {
             }
         ],
         "require": {
-            "netivo/wp-core": "dev-master",
+            "netivo/wp-core": "^1.1.1",
             "php": ">=8.2.0"
         }
     }
     structure.autoload['psr-4'][full_namespace] = 'src/Theme';
 
     if(options.woocommerce) {
-        structure['require']["netivo/woocommerce"] = "dev-master";
+        structure['require']["netivo/woocommerce"] = "^1.0";
     }
 
     let json_string = JSON.stringify(structure, null, 2);

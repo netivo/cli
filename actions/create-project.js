@@ -72,6 +72,7 @@ let create_structure = () => {
 let create_files = () => {
     create_package_json();
     create_style_css();
+    create_theme_json();
     create_docker();
     create_composer_json();
     create_php_structure();
@@ -99,6 +100,81 @@ let create_package_json = () => {
     }
     let json_string = JSON.stringify(structure, null, 2);
     fs.writeFileSync(options.name+'/package.json', json_string);
+    log.log('--- Done');
+}
+
+
+let create_theme_json = () => {
+    log.log('--- Creating theme.json');
+    let structure = {
+        "$schema": "https:\/\/schemas.wp.org\/trunk\/theme.json",
+        "version": 3,
+        "settings": {
+            "appearanceTools": true,
+            "color": {
+                "background": true,
+                "custom": true,
+                "customDuotone": true,
+                "customGradient": true,
+                "defaultPalette": false,
+                "defaultDuotone": false,
+                "defaultGradients": false,
+                "link": false,
+                "text": true,
+                "palette": [
+                    {
+                        "name": "Black",
+                        "slug": "black",
+                        "color": "#000000"
+                    },
+                    {
+                        "name": "White",
+                        "slug": "white",
+                        "color": "#ffffff"
+                    }
+                ],
+                "duotone": [],
+                "gradients": []
+            },
+            "typography": {
+                "customFontSize": false,
+                "defaultFontSizes": false,
+                "dropCap": false,
+                "fontStyle": false,
+                "fontWeight": true,
+                "letterSpacing": false,
+                "lineHeight": false,
+                "textColumns": false,
+                "textDecoration": true,
+                "textTransform": true,
+                "writingMode": false,
+                "fontSizes": [],
+                "fontFamilies": []
+            },
+            "spacing": {
+                "padding": true,
+                "margin": true,
+                "customSpacingSize": false,
+                "defaultSpacingSizes": false,
+                "units": [
+                    "rem"
+                ],
+                "spacingSizes": []
+            },
+            "layout": {
+                "contentSize": "1600px",
+                "wideSize": "1800px"
+            },
+            "border": {
+                "color": false,
+                "radius": true,
+                "style": false,
+                "width": false
+            }
+        }
+    }
+    let json_string = JSON.stringify(structure, null, 2);
+    fs.writeFileSync(options.name+'/theme.json', json_string);
     log.log('--- Done');
 }
 

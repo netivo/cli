@@ -1,5 +1,13 @@
 # Netivo CLI Changelog
 
+## Version 1.2.3
+- Added phpcs when creating a new project
+- Added git initialization with a pre-commit hook during project creation
+- Changed log to apply colors to error and waring logs.
+
+## Version 1.2.2
+- Generate theme.json during project creation
+
 ## Version 1.2.1
 - Composer modules version change
 

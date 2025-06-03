@@ -18,7 +18,9 @@ let options = {
         password: '',
         rootPassword: ''
     },
-    woocommerce: false
+    woocommerce: false,
+    git: true,
+    gitRepository: ''
 };
 
 import fs from "fs";
@@ -51,7 +53,9 @@ let create_project = (opt) => {
     create_structure();
     create_files();
     run_commands();
-    log.log('--- Project created');
+    if(options.git) {
+        init_git();
+    }
 };
 
 let create_structure = () => {
@@ -102,7 +106,6 @@ let create_package_json = () => {
     fs.writeFileSync(options.name+'/package.json', json_string);
     log.log('--- Done');
 }
-
 
 let create_theme_json = () => {
     log.log('--- Creating theme.json');
@@ -300,6 +303,10 @@ let create_composer_json = () => {
                 "email": "biuro@netivo.pl"
             }
         ],
+        "scripts": {
+            "lint": "vendor/bin/phpcs --standard=phpcs.xml.dist -d memory_limit=1024M --runtime-set timeout 300",
+            "lint-fix": "vendor/bin/phpcbf --standard=phpcs.xml.dist -d memory_limit=1024M --runtime-set timeout 300"
+        },
         "repositories": [
             {
                 "type": "composer",
@@ -309,6 +316,15 @@ let create_composer_json = () => {
         "require": {
             "netivo/wp-core": "^1.1.1",
             "php": ">=8.2.0"
+        },
+        "require-dev": {
+            "squizlabs/php_codesniffer": "^3.13",
+            "wp-coding-standards/wpcs": "^3.1",
+            "automattic/vipwpcs": "*",
+            "phpcsstandards/phpcsutils": "^1.0",
+            "phpcompatibility/php-compatibility": "*",
+            "sirbrillig/phpcs-variable-analysis": "^2.11",
+            "dealerdirect/phpcodesniffer-composer-installer": "^1.0"
         }
     }
     structure.autoload['psr-4'][full_namespace] = 'src/Theme';
@@ -323,7 +339,7 @@ let create_composer_json = () => {
 }
 
 let create_php_structure = () => {
-    log.log('--- Creating Wordpress files');
+    log.log('--- Creating necessary files');
     fs.mkdirSync(options.name + '/src');
     fs.mkdirSync(options.name + '/src/Theme');
     fs.mkdirSync(options.name + '/src/Theme/Admin');
@@ -332,6 +348,7 @@ let create_php_structure = () => {
     fs.copyFileSync(path.join( path.dirname( __dirname ), 'templates','index.php'), options.name + '/index.php');
     fs.copyFileSync(path.join( path.dirname( __dirname ), 'templates','header.php'), options.name + '/header.php');
     fs.copyFileSync(path.join( path.dirname( __dirname ), 'templates','footer.php'), options.name + '/footer.php');
+    fs.copyFileSync(path.join( path.dirname( __dirname ), 'templates','phpcs.xml.dist'), options.name + '/phpcs.xml.dist');
     // fs.copyFileSync(path.join( path.dirname( __dirname ), 'templates','functions.php'), options.name + '/functions.php');
 
     log.log('--- Done copying files');
@@ -549,7 +566,25 @@ let run_commands = () => {
     log.log('--- Done');
 }
 
+let init_git = () => {
+    log.log('--- Initializing git repository');
+    spawn.sync('git', ['init'], {stdio: 'inherit', cwd: options.name});
+    if(!_.isEmpty(options.gitRepository)) {
+        log.log('--- Adding remote repository');
+        spawn.sync('git', ['remote', 'add', 'origin', options.gitRepository], {stdio: 'inherit', cwd: options.name});
+    } else {
+        log.log_warning('--- Remember to add remote repository before pushing to it, by using command `git remote add origin <url>`');
+    }
+    if(!fs.existsSync(options.name + '/.git/hooks/')) {
+        fs.mkdirSync(options.name + '/.git/hooks/');
+    }
+    log.log('--- Adding pre-commit hook');
+    fs.copyFileSync(path.join( path.dirname( __dirname ), 'templates','pre-commit'), options.name + '/.git/hooks/pre-commit');
+    fs.chmodSync(options.name + '/.git/hooks/pre-commit', '755');
+    log.log('--- Done');
+}
+
 
 get_data.project().then(create_project).catch(error => {
-    log.log(error);
+    log.log_error(error);
 });

@@ -1,0 +1,30 @@
+#!/bin/sh
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.(php|inc|module|install|theme)$')
+
+if [ -z "$STAGED_FILES" ]; then
+  exit 0
+fi
+
+echo "🔍 Running PHP CodeSniffer on staged files:"
+echo "$STAGED_FILES"
+
+# Autofix Section
+echo "🎨 Attempting auto-fixes..."
+vendor/bin/phpcbf --standard=phpcs.xml.dist $STAGED_FILES
+git add $STAGED_FILES
+
+# ⬇️⬇️⬇️ HERE WE ADD A MESSAGE ⬇️⬇️⬇️
+echo "💡 Auto-fixes applied. Check 'git diff --staged' for changes."
+# ⬆️⬆️⬆️ END OF ADDING MESSAGE ⬆️⬆️⬆️
+
+echo "🚦 Checking code quality..."
+vendor/bin/phpcs --standard=phpcs.xml.dist -d memory_limit=1024M --runtime-set timeout 300 $STAGED_FILES
+
+PHPCS_EXIT_CODE=$?
+if [ $PHPCS_EXIT_CODE -ne 0 ]; then
+  echo "❌ PHP CodeSniffer found issues! Commit blocked."
+  echo "ℹ️ To attempt auto-fixes, run: composer run lint-fix"
+  exit 1
+fi
+
+exit 0

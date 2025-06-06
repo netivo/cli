@@ -10,7 +10,7 @@ echo "$STAGED_FILES"
 
 # Autofix Section
 echo "🎨 Attempting auto-fixes..."
-vendor/bin/phpcbf --standard=phpcs.xml.dist $STAGED_FILES
+phpcbf --standard=phpcs.xml.dist $STAGED_FILES
 git add $STAGED_FILES
 
 # ⬇️⬇️⬇️ HERE WE ADD A MESSAGE ⬇️⬇️⬇️
@@ -18,7 +18,11 @@ echo "💡 Auto-fixes applied. Check 'git diff --staged' for changes."
 # ⬆️⬆️⬆️ END OF ADDING MESSAGE ⬆️⬆️⬆️
 
 echo "🚦 Checking code quality..."
-vendor/bin/phpcs --standard=phpcs.xml.dist -d memory_limit=1024M --runtime-set timeout 300 $STAGED_FILES
+phpcs --standard=phpcs.xml.dist -d memory_limit=1024M --report=json --runtime-set timeout 300 $STAGED_FILES > ./.git/report.json
+
+phpcs --standard=phpcs.xml.dist -d memory_limit=1024M --runtime-set timeout 300 $STAGED_FILES
+
+php ./.git/hooks/pre-commit.php
 
 PHPCS_EXIT_CODE=$?
 if [ $PHPCS_EXIT_CODE -ne 0 ]; then

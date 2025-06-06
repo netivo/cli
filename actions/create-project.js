@@ -23,6 +23,8 @@ let options = {
     gitRepository: ''
 };
 
+let project_config = null;
+
 import fs from "fs";
 import * as yaml from "js-yaml";
 import {parse, stringify} from "envfile";
@@ -35,6 +37,7 @@ import log from "./../lib/log.js";
 
 import * as spawn from "cross-spawn";
 import create_php_file from "../lib/create-php-file.js";
+import parser from "../lib/config-parser.js";
 const __dirname = import.meta.dirname;
 
 let create_project = (opt) => {
@@ -79,8 +82,8 @@ let create_files = () => {
     create_theme_json();
     create_docker();
     create_composer_json();
-    create_php_structure();
     create_config_file();
+    create_php_structure();
 }
 
 let create_package_json = () => {
@@ -344,6 +347,7 @@ let create_php_structure = () => {
     fs.mkdirSync(options.name + '/src/Theme');
     fs.mkdirSync(options.name + '/src/Theme/Admin');
     fs.mkdirSync(options.name + '/src/views');
+    fs.mkdirSync(options.name + '/src/config');
 
     fs.copyFileSync(path.join( path.dirname( __dirname ), 'templates','index.php'), options.name + '/index.php');
     fs.copyFileSync(path.join( path.dirname( __dirname ), 'templates','header.php'), options.name + '/header.php');
@@ -370,6 +374,8 @@ let create_php_structure = () => {
     create_php_classes();
 
     create_functions_php();
+
+    parser.save_modules(project_config);
 }
 
 let create_php_classes = () => {
@@ -524,13 +530,13 @@ let create_functions_php = () => {
 
 let create_config_file = () => {
     log.log('--- Creating netivo.json');
-    let structure = {
+    project_config = {
         "project_name": options.wordpress.themeName,
         "namespace": options.namespace,
-        "view_path": 'src/views',
         "text_domain": options.wordpress.textDomain,
         timestamp: null,
         modules: {
+            view_path: 'src/views',
             admin: {
                 metabox: [],
                 pages: [],
@@ -549,7 +555,8 @@ let create_config_file = () => {
             }
         }
     }
-    let json_string = JSON.stringify(structure, null, 2);
+
+    let json_string = JSON.stringify(project_config, null, 2);
     fs.writeFileSync(options.name+'/netivo.json', json_string);
     log.log('--- Done');
 }
@@ -580,7 +587,9 @@ let init_git = () => {
     }
     log.log('--- Adding pre-commit hook');
     fs.copyFileSync(path.join( path.dirname( __dirname ), 'templates','pre-commit'), options.name + '/.git/hooks/pre-commit');
+    fs.copyFileSync(path.join( path.dirname( __dirname ), 'templates','pre-commit.php'), options.name + '/.git/hooks/pre-commit.php');
     fs.chmodSync(options.name + '/.git/hooks/pre-commit', '755');
+    fs.chmodSync(options.name + '/.git/hooks/pre-commit.php', '755');
     log.log('--- Done');
 }
 

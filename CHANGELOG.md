@@ -1,5 +1,8 @@
 # Netivo CLI Changelog
 
+## Version 1.2.4
+- Fixed pre-commit
+
 ## Version 1.2.3
 - Added phpcs when creating a new project
 - Added git initialization with a pre-commit hook during project creation

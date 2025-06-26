@@ -48,7 +48,7 @@ let parse_options = opt => {
 
     options.style = opt.style;
     if(opt.style !== false) {
-        options.stylePath = 'sources/gutenberg/' + opt.blockDir + '/front/scss/';
+        options.stylePath = 'sources/gutenberg/' + opt.blockDir + '/front/style/';
     }
     options.script = opt.script;
     if(opt.script !== false) {
@@ -147,14 +147,18 @@ let create_main_block_js = () => {
 
 
     let content = '';
-    content += 'import { registerBlockType } from \'@wordpress/blocks\'\n';
+    content += 'import { registerBlockType } from \'@wordpress/blocks\'\n\n';
+    content += 'import edit from \'./edit\'\n';
+    if(!options.dynamic) {
+      content += 'import save from \'./save\'\n';
+    }
     content += '\n\n';
     content += 'registerBlockType(\''+options.id+'\', {\n';
-    content += '\tedit: () => { return (<div></div>); },\n';
+    content += '\tedit: edit,\n';
     if(options.dynamic) {
         content += '\tsave: () => { return null; }\n';
     } else {
-        content += '\tsave: () => { return (<div></div>); }\n';
+        content += '\tsave: save\n';
     }
     content += '});';
 
@@ -164,15 +168,39 @@ let create_main_block_js = () => {
     let file_name = options.blockJSPath + '/index.js';
 
     fs.writeFileSync(file_name, content);
+
+    let edit_content = 'const edit = () => {\n' +
+      '  return (<div></div>);\n' +
+      '};\n' +
+      '\n' +
+      'export default edit;\n';
+
+    let file_name_edit = options.blockJSPath + '/edit.js';
+    fs.writeFileSync(file_name_edit, edit_content);
+
+    if(!options.dynamic) {
+      let save_content = 'const save = () => {\n' +
+        '  return (<div></div>);\n' +
+        '};\n' +
+        '\n' +
+        'export default save;\n';
+
+      let file_name_save = options.blockJSPath + '/save.js';
+      fs.writeFileSync(file_name_save, save_content);
+    }
+
 }
 
 let create_block_json = () => {
     let blockOptions = {
         "$schema": "https://schemas.wp.org/trunk/block.json",
         "apiVersion": 3,
+        "name": options.id,
         "title": options.name,
         "category": options.category,
+        "icon": "block-default",
         "description": options.description,
+        "keywords": [ ],
         "attributes": {},
         "textdomain": project_config.text_domain,
     }

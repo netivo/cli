@@ -1,5 +1,8 @@
 # Netivo CLI Changelog
 
+## Version 1.2.6
+- Changed edit and save block file generation.
+
 ## Version 1.2.5
 - Fixed blok generation no block name in block.json and wrong style directory
 - Added default options to block.json: icon, keywords

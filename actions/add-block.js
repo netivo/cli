@@ -148,17 +148,17 @@ let create_main_block_js = () => {
 
     let content = '';
     content += 'import { registerBlockType } from \'@wordpress/blocks\'\n\n';
-    content += 'import edit from \'./edit\'\n';
+    content += 'import Edit from \'./edit\'\n';
     if(!options.dynamic) {
-      content += 'import save from \'./save\'\n';
+      content += 'import Save from \'./save\'\n';
     }
     content += '\n\n';
     content += 'registerBlockType(\''+options.id+'\', {\n';
-    content += '\tedit: edit,\n';
+    content += '\tedit: Edit,\n';
     if(options.dynamic) {
         content += '\tsave: () => { return null; }\n';
     } else {
-        content += '\tsave: save\n';
+        content += '\tsave: Save\n';
     }
     content += '});';
 
@@ -169,24 +169,10 @@ let create_main_block_js = () => {
 
     fs.writeFileSync(file_name, content);
 
-    let edit_content = 'const edit = () => {\n' +
-      '  return (<div></div>);\n' +
-      '};\n' +
-      '\n' +
-      'export default edit;\n';
-
-    let file_name_edit = options.blockJSPath + '/edit.js';
-    fs.writeFileSync(file_name_edit, edit_content);
+    fs.copyFileSync(path.join( path.dirname( __dirname ), 'templates', 'block', 'edit.js'), options.blockJSPath + '/edit.js');
 
     if(!options.dynamic) {
-      let save_content = 'const save = () => {\n' +
-        '  return (<div></div>);\n' +
-        '};\n' +
-        '\n' +
-        'export default save;\n';
-
-      let file_name_save = options.blockJSPath + '/save.js';
-      fs.writeFileSync(file_name_save, save_content);
+      fs.copyFileSync(path.join( path.dirname( __dirname ), 'templates', 'block', 'save.js'), options.blockJSPath + '/save.js');
     }
 
 }

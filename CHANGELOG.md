@@ -1,5 +1,8 @@
 # Netivo CLI Changelog
 
+## Version 1.2.7
+- Fixed server side rendered blocks
+
 ## Version 1.2.6
 - Changed edit and save block file generation.
 

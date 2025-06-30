@@ -94,7 +94,19 @@ let generate_class_data = () => {
             name: 'render',
             access: 'public',
             type: 'void',
-            body: 'include get_stylesheet_directory().\'dist/gutenberg/' + options.blockDir + '/render.php\';',
+            params: [
+              {
+                name: 'attributes',
+                type: 'array',
+                description: 'Block attributes',
+              },
+              {
+                name: 'content',
+                type: 'string',
+                description: 'Block content',
+              }
+            ],
+            body: 'include get_stylesheet_directory().\'/dist/gutenberg/' + options.blockDir + '/render.php\';',
             docblock: 'Render block contents'
         })
     }

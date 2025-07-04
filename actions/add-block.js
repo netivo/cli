@@ -86,14 +86,14 @@ let generate_class_data = () => {
     if(options.dynamic !== false) {
         classData.properties.push({
             name: 'callback',
-            type: 'string',
+            type: 'string?',
             access: 'protected',
             value: 'render'
         });
         classData.methods.push({
             name: 'render',
             access: 'public',
-            type: 'void',
+            type: 'string',
             params: [
               {
                 name: 'attributes',
@@ -106,7 +106,7 @@ let generate_class_data = () => {
                 description: 'Block content',
               }
             ],
-            body: 'include get_stylesheet_directory().\'/dist/gutenberg/' + options.blockDir + '/render.php\';',
+            body: 'ob_start();\n\t\tinclude get_stylesheet_directory().\'/dist/gutenberg/' + options.blockDir + '/render.php\';\n\t\treturn ob_get_clean();',
             docblock: 'Render block contents'
         })
     }

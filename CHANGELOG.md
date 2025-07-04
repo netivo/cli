@@ -1,5 +1,8 @@
 # Netivo CLI Changelog
 
+## Version 1.2.8
+- Fixed server side rendered blocks, render_callback error
+
 ## Version 1.2.7
 - Fixed server side rendered blocks
 

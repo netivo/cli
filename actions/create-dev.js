@@ -21,16 +21,16 @@ const config = {
   port: ''
 };
 
-if(global_config.hasOwnProperty('private_key')) {
+if(global_config.hasOwnProperty('private_key') && global_config.private_key !== '') {
   config.private_key = global_config.private_key;
 }
-if(global_config.hasOwnProperty('host')) {
+if(global_config.hasOwnProperty('host') && global_config.host !== '') {
   config.host = global_config.host;
 }
-if(global_config.hasOwnProperty('user')) {
+if(global_config.hasOwnProperty('user') && global_config.user !== '') {
   config.user = global_config.user;
 }
-if(global_config.hasOwnProperty('port')) {
+if(global_config.hasOwnProperty('port') && global_config.port !== '') {
   config.port = global_config.port;
 }
 
@@ -41,6 +41,28 @@ getSshData(config).then(config => {
     port: config.port,
     key: readFileSync(config.private_key)
   });
+
+  let save = false;
+
+  if(!global_config.hasOwnProperty('private_key') || global_config.private_key === '') {
+    global_config.private_key = config.private_key;
+    save = true;
+  }
+  if(!global_config.hasOwnProperty('host') || global_config.host === '') {
+    global_config.host = config.host;
+    save = true;
+  }
+  if(!global_config.hasOwnProperty('user') || global_config.user === '') {
+    global_config.user = config.user;
+    save = true;
+  }
+  if(!global_config.hasOwnProperty('port') || global_config.port === '') {
+    global_config.port = config.port;
+    save = true;
+  }
+  if(save) {
+    writeFileSync(config_file, JSON.stringify(global_config, null, 2));
+  }
 
   const generateRandomString = (length) => {
     return Math.random().toString(36).substring(2, 2 + length);

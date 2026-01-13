@@ -8,7 +8,7 @@ It allows you to:
 ## Installation
 To install just run the command:
 
-```npm install -g @netivo\cli```
+```npm install -g @netivo/cli```
 
 ## How to use
 

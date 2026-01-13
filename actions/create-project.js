@@ -18,8 +18,12 @@ let options = {
         password: '',
         rootPassword: ''
     },
-    woocommerce: false
+    woocommerce: false,
+    git: true,
+    gitRepository: ''
 };
+
+let project_config = null;
 
 import fs from "fs";
 import * as yaml from "js-yaml";
@@ -33,6 +37,7 @@ import log from "./../lib/log.js";
 
 import * as spawn from "cross-spawn";
 import create_php_file from "../lib/create-php-file.js";
+import parser from "../lib/config-parser.js";
 const __dirname = import.meta.dirname;
 
 let create_project = (opt) => {
@@ -51,7 +56,9 @@ let create_project = (opt) => {
     create_structure();
     create_files();
     run_commands();
-    log.log('--- Project created');
+    if(options.git) {
+        init_git();
+    }
 };
 
 let create_structure = () => {
@@ -72,10 +79,11 @@ let create_structure = () => {
 let create_files = () => {
     create_package_json();
     create_style_css();
+    create_theme_json();
     create_docker();
     create_composer_json();
-    create_php_structure();
     create_config_file();
+    create_php_structure();
 }
 
 let create_package_json = () => {
@@ -99,6 +107,80 @@ let create_package_json = () => {
     }
     let json_string = JSON.stringify(structure, null, 2);
     fs.writeFileSync(options.name+'/package.json', json_string);
+    log.log('--- Done');
+}
+
+let create_theme_json = () => {
+    log.log('--- Creating theme.json');
+    let structure = {
+        "$schema": "https:\/\/schemas.wp.org\/trunk\/theme.json",
+        "version": 3,
+        "settings": {
+            "appearanceTools": true,
+            "color": {
+                "background": true,
+                "custom": true,
+                "customDuotone": true,
+                "customGradient": true,
+                "defaultPalette": false,
+                "defaultDuotone": false,
+                "defaultGradients": false,
+                "link": false,
+                "text": true,
+                "palette": [
+                    {
+                        "name": "Black",
+                        "slug": "black",
+                        "color": "#000000"
+                    },
+                    {
+                        "name": "White",
+                        "slug": "white",
+                        "color": "#ffffff"
+                    }
+                ],
+                "duotone": [],
+                "gradients": []
+            },
+            "typography": {
+                "customFontSize": false,
+                "defaultFontSizes": false,
+                "dropCap": false,
+                "fontStyle": false,
+                "fontWeight": true,
+                "letterSpacing": false,
+                "lineHeight": false,
+                "textColumns": false,
+                "textDecoration": true,
+                "textTransform": true,
+                "writingMode": false,
+                "fontSizes": [],
+                "fontFamilies": []
+            },
+            "spacing": {
+                "padding": true,
+                "margin": true,
+                "customSpacingSize": false,
+                "defaultSpacingSizes": false,
+                "units": [
+                    "rem"
+                ],
+                "spacingSizes": []
+            },
+            "layout": {
+                "contentSize": "1600px",
+                "wideSize": "1800px"
+            },
+            "border": {
+                "color": false,
+                "radius": true,
+                "style": false,
+                "width": false
+            }
+        }
+    }
+    let json_string = JSON.stringify(structure, null, 2);
+    fs.writeFileSync(options.name+'/theme.json', json_string);
     log.log('--- Done');
 }
 
@@ -224,6 +306,10 @@ let create_composer_json = () => {
                 "email": "biuro@netivo.pl"
             }
         ],
+        "scripts": {
+            "lint": "vendor/bin/phpcs --standard=phpcs.xml.dist -d memory_limit=1024M --runtime-set timeout 300",
+            "lint-fix": "vendor/bin/phpcbf --standard=phpcs.xml.dist -d memory_limit=1024M --runtime-set timeout 300"
+        },
         "repositories": [
             {
                 "type": "composer",
@@ -231,14 +317,23 @@ let create_composer_json = () => {
             }
         ],
         "require": {
-            "netivo/wp-core": "dev-master",
+            "netivo/wp-core": "^1.1.1",
             "php": ">=8.2.0"
+        },
+        "require-dev": {
+            "squizlabs/php_codesniffer": "^3.13",
+            "wp-coding-standards/wpcs": "^3.1",
+            "automattic/vipwpcs": "*",
+            "phpcsstandards/phpcsutils": "^1.0",
+            "phpcompatibility/php-compatibility": "*",
+            "sirbrillig/phpcs-variable-analysis": "^2.11",
+            "dealerdirect/phpcodesniffer-composer-installer": "^1.0"
         }
     }
     structure.autoload['psr-4'][full_namespace] = 'src/Theme';
 
     if(options.woocommerce) {
-        structure['require']["netivo/woocommerce"] = "dev-master";
+        structure['require']["netivo/woocommerce"] = "^1.0";
     }
 
     let json_string = JSON.stringify(structure, null, 2);
@@ -247,15 +342,17 @@ let create_composer_json = () => {
 }
 
 let create_php_structure = () => {
-    log.log('--- Creating Wordpress files');
+    log.log('--- Creating necessary files');
     fs.mkdirSync(options.name + '/src');
     fs.mkdirSync(options.name + '/src/Theme');
     fs.mkdirSync(options.name + '/src/Theme/Admin');
     fs.mkdirSync(options.name + '/src/views');
+    fs.mkdirSync(options.name + '/src/config');
 
     fs.copyFileSync(path.join( path.dirname( __dirname ), 'templates','index.php'), options.name + '/index.php');
     fs.copyFileSync(path.join( path.dirname( __dirname ), 'templates','header.php'), options.name + '/header.php');
     fs.copyFileSync(path.join( path.dirname( __dirname ), 'templates','footer.php'), options.name + '/footer.php');
+    fs.copyFileSync(path.join( path.dirname( __dirname ), 'templates','phpcs.xml.dist'), options.name + '/phpcs.xml.dist');
     // fs.copyFileSync(path.join( path.dirname( __dirname ), 'templates','functions.php'), options.name + '/functions.php');
 
     log.log('--- Done copying files');
@@ -277,6 +374,8 @@ let create_php_structure = () => {
     create_php_classes();
 
     create_functions_php();
+
+    parser.save_modules(project_config);
 }
 
 let create_php_classes = () => {
@@ -431,13 +530,13 @@ let create_functions_php = () => {
 
 let create_config_file = () => {
     log.log('--- Creating netivo.json');
-    let structure = {
+    project_config = {
         "project_name": options.wordpress.themeName,
         "namespace": options.namespace,
-        "view_path": 'src/views',
         "text_domain": options.wordpress.textDomain,
         timestamp: null,
         modules: {
+            view_path: 'src/views',
             admin: {
                 metabox: [],
                 pages: [],
@@ -456,7 +555,8 @@ let create_config_file = () => {
             }
         }
     }
-    let json_string = JSON.stringify(structure, null, 2);
+
+    let json_string = JSON.stringify(project_config, null, 2);
     fs.writeFileSync(options.name+'/netivo.json', json_string);
     log.log('--- Done');
 }
@@ -473,7 +573,27 @@ let run_commands = () => {
     log.log('--- Done');
 }
 
+let init_git = () => {
+    log.log('--- Initializing git repository');
+    spawn.sync('git', ['init'], {stdio: 'inherit', cwd: options.name});
+    if(!_.isEmpty(options.gitRepository)) {
+        log.log('--- Adding remote repository');
+        spawn.sync('git', ['remote', 'add', 'origin', options.gitRepository], {stdio: 'inherit', cwd: options.name});
+    } else {
+        log.log_warning('--- Remember to add remote repository before pushing to it, by using command `git remote add origin <url>`');
+    }
+    if(!fs.existsSync(options.name + '/.git/hooks/')) {
+        fs.mkdirSync(options.name + '/.git/hooks/');
+    }
+    log.log('--- Adding pre-commit hook');
+    fs.copyFileSync(path.join( path.dirname( __dirname ), 'templates','pre-commit'), options.name + '/.git/hooks/pre-commit');
+    fs.copyFileSync(path.join( path.dirname( __dirname ), 'templates','pre-commit.php'), options.name + '/.git/hooks/pre-commit.php');
+    fs.chmodSync(options.name + '/.git/hooks/pre-commit', '755');
+    fs.chmodSync(options.name + '/.git/hooks/pre-commit.php', '755');
+    log.log('--- Done');
+}
+
 
 get_data.project().then(create_project).catch(error => {
-    log.log(error);
+    log.log_error(error);
 });

@@ -48,7 +48,7 @@ let parse_options = opt => {
 
     options.style = opt.style;
     if(opt.style !== false) {
-        options.stylePath = 'sources/gutenberg/' + opt.blockDir + '/front/scss/';
+        options.stylePath = 'sources/gutenberg/' + opt.blockDir + '/front/style/';
     }
     options.script = opt.script;
     if(opt.script !== false) {
@@ -86,15 +86,27 @@ let generate_class_data = () => {
     if(options.dynamic !== false) {
         classData.properties.push({
             name: 'callback',
-            type: 'string',
+            type: 'string?',
             access: 'protected',
             value: 'render'
         });
         classData.methods.push({
             name: 'render',
             access: 'public',
-            type: 'void',
-            body: 'include get_stylesheet_directory().\'dist/gutenberg/' + options.blockDir + '/render.php\';',
+            type: 'string',
+            params: [
+              {
+                name: 'attributes',
+                type: 'array',
+                description: 'Block attributes',
+              },
+              {
+                name: 'content',
+                type: 'string',
+                description: 'Block content',
+              }
+            ],
+            body: 'ob_start();\n\t\tinclude get_stylesheet_directory().\'/dist/gutenberg/' + options.blockDir + '/render.php\';\n\t\treturn ob_get_clean();',
             docblock: 'Render block contents'
         })
     }
@@ -147,14 +159,18 @@ let create_main_block_js = () => {
 
 
     let content = '';
-    content += 'import { registerBlockType } from \'@wordpress/blocks\'\n';
+    content += 'import { registerBlockType } from \'@wordpress/blocks\'\n\n';
+    content += 'import Edit from \'./edit\'\n';
+    if(!options.dynamic) {
+      content += 'import Save from \'./save\'\n';
+    }
     content += '\n\n';
     content += 'registerBlockType(\''+options.id+'\', {\n';
-    content += '\tedit: () => { return (<div></div>); },\n';
+    content += '\tedit: Edit,\n';
     if(options.dynamic) {
         content += '\tsave: () => { return null; }\n';
     } else {
-        content += '\tsave: () => { return (<div></div>); }\n';
+        content += '\tsave: Save\n';
     }
     content += '});';
 
@@ -164,15 +180,25 @@ let create_main_block_js = () => {
     let file_name = options.blockJSPath + '/index.js';
 
     fs.writeFileSync(file_name, content);
+
+    fs.copyFileSync(path.join( path.dirname( __dirname ), 'templates', 'block', 'edit.js'), options.blockJSPath + '/edit.js');
+
+    if(!options.dynamic) {
+      fs.copyFileSync(path.join( path.dirname( __dirname ), 'templates', 'block', 'save.js'), options.blockJSPath + '/save.js');
+    }
+
 }
 
 let create_block_json = () => {
     let blockOptions = {
         "$schema": "https://schemas.wp.org/trunk/block.json",
         "apiVersion": 3,
+        "name": options.id,
         "title": options.name,
         "category": options.category,
+        "icon": "block-default",
         "description": options.description,
+        "keywords": [ ],
         "attributes": {},
         "textdomain": project_config.text_domain,
     }

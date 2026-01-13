@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<ruleset name="Netivo">
+  <description>Standard WordPress-VIP-Go dla szablonu WordPress</description>
+  <file>./</file>
+
+  <!-- Wykluczenia -->
+  <exclude-pattern>\.git/</exclude-pattern>
+  <exclude-pattern>\.idea/</exclude-pattern>
+  <exclude-pattern>vendor/</exclude-pattern>
+  <exclude-pattern>node_modules/</exclude-pattern>
+  <exclude-pattern>dist/</exclude-pattern>
+  <exclude-pattern>proxy/</exclude-pattern>
+  <exclude-pattern>src/*</exclude-pattern>
+  <exclude-pattern>*.{scss,css,js,jpg,png,svg,gif,pot}</exclude-pattern>
+
+  <!-- Konfiguracja standardów -->
+  <rule ref="WordPressVIPMinimum">
+    <exclude name="WordPressVIPMinimum.Functions.RestrictedFunctions.wp_is_mobile_wp_is_mobile"/>
+  </rule>
+  <rule ref="PHPCompatibility">
+    <config name="testVersion" value="8.2-"/>
+  </rule>
+  <rule ref="VariableAnalysis"/>
+</ruleset>

@@ -14,6 +14,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 <?php get_header(); ?>
 
-Tutaj umieść swój kod
+Tutaj umieść swój kodv
 
 <?php get_footer(); ?>

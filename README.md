@@ -20,6 +20,8 @@ In place of operation you must provide one of the following actions:
 - `create-project` - Action which creates WordPress theme project.
 - `add-metabox` - Action which creates MetaBox in the WordPress project
 - `add-block` - Action which creates gutenberg block in WordPress project
+- `create-dev` - Action which creates development site on server with cPanel
+- `global` - Action to set up global variables for the cli
 
 Default action is: `create-project`
 

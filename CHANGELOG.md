@@ -1,5 +1,9 @@
 # Netivo CLI Changelog
 
+## Version 1.3
+- Added global configuration with dev connection settings
+- Added option for creating a development site on cPanel
+
 ## Version 1.2.8
 - Fixed server side rendered blocks, render_callback error
 

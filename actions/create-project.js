@@ -93,8 +93,8 @@ let create_package_json = () => {
         "author": "Netivo <biuro@netivo.pl> (http://netivo.pl)",
         "license": "ISC",
         "dependencies": {
-            "@netivo/base-scripts": "git+dev://git@github.com:netivo/base-scripts.git",
-            "@netivo/scripts": "git+dev://git@github.com:netivo/scripts.git",
+            "@netivo/base-scripts": "git+ssh://git@github.com:netivo/base-scripts.git",
+            "@netivo/scripts": "git+ssh://git@github.com:netivo/scripts.git",
         }
     }
     let json_string = JSON.stringify(structure, null, 2);

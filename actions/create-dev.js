@@ -3,6 +3,7 @@
 
 import SSH from 'simple-ssh';
 import { readFileSync, existsSync, writeFileSync } from 'fs';
+import { fileURLToPath } from 'url';
 import ospath                from 'ospath';
 import { dev as getSshData } from '../lib/get-data.js';
 
@@ -15,6 +16,7 @@ if(existsSync(config_file)) {
 
 const config = {
   name: '',
+  title: '',
   private_key: '',
   host: '',
   user: '',
@@ -69,7 +71,7 @@ getSshData(config).then(config => {
   };
 
   const generatePassword = (length) => {
-    const charset = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789!@#$%^&*()_+~`|}{[]:;?><,./-=";
+    const charset = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789@#&*^_";
     let retVal = "";
     for (let i = 0, n = charset.length; i < length; ++i) {
       retVal += charset.charAt(Math.floor(Math.random() * n));
@@ -95,9 +97,41 @@ getSshData(config).then(config => {
   console.log('DB Prefix:   ' + config.db_prefix);
 
 
-  ssh.exec('echo $PATH', {
+  const wpInstallPath = fileURLToPath(new URL('../wp-install.sh', import.meta.url));
+  const wpInstallContent = readFileSync(wpInstallPath, 'utf8');
+
+  ssh.exec(`if [ ! -f wp-install.sh ]; then echo "UPLOADING"; cat > wp-install.sh && chmod +x wp-install.sh; else echo "EXISTS"; cat > /dev/null; fi`, {
+    in: wpInstallContent,
+    out: function(stdout) {
+      if (stdout.trim() === 'UPLOADING') {
+        console.log('wp-install.sh uploaded to server.');
+      } else if (stdout.trim() === 'EXISTS') {
+        console.log('wp-install.sh already exists on server.');
+      }
+    }
+  });
+
+  const escapeShellArg = (arg) => {
+    return `'${String(arg).replace(/'/g, "'\\''")}'`;
+  };
+
+  const installArgs = [
+    'sm2.netivo.pl',
+    config.name,
+    config.db_name,
+    config.db_user,
+    config.db_password,
+    config.db_prefix,
+    config.title
+  ].map(escapeShellArg);
+
+  ssh.exec('./wp-install.sh', {
+    args: installArgs,
     out: function(stdout) {
       console.log(stdout);
+    },
+    err: function(stderr) {
+      console.error('ERROR: ' + stderr);
     }
   }).start();
 });

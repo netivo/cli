@@ -18,6 +18,7 @@ const config = {
   name: '',
   title: '',
   private_key: '',
+  dev_domain: '',
   host: '',
   user: '',
   port: ''
@@ -28,6 +29,9 @@ if(global_config.hasOwnProperty('private_key') && global_config.private_key !== 
 }
 if(global_config.hasOwnProperty('host') && global_config.host !== '') {
   config.host = global_config.host;
+}
+if(global_config.hasOwnProperty('dev_domain') && global_config.dev_domain !== '') {
+  config.dev_domain = global_config.dev_domain;
 }
 if(global_config.hasOwnProperty('user') && global_config.user !== '') {
   config.user = global_config.user;
@@ -62,6 +66,10 @@ getSshData(config).then(config => {
     global_config.port = config.port;
     save = true;
   }
+  if(!global_config.hasOwnProperty('dev_domain') || global_config.dev_domain === '') {
+    global_config.dev_domain = config.dev_domain;
+    save = true;
+  }
   if(save) {
     writeFileSync(config_file, JSON.stringify(global_config, null, 2));
   }
@@ -79,7 +87,7 @@ getSshData(config).then(config => {
     return retVal;
   };
 
-  config.full_domain = `${config.name}.sm2.netivo.pl`;
+  config.full_domain = `${config.name}.${config.dev_domain}`;
 
   const cleanName = config.name.replace(/[^a-zA-Z0-9]/g, '').substring(0, 7);
   const shuffle = (str) => str.split('').sort(() => 0.5 - Math.random()).join('');
@@ -116,7 +124,7 @@ getSshData(config).then(config => {
   };
 
   const installArgs = [
-    'sm2.netivo.pl',
+    config.dev_domain,
     config.name,
     config.db_name,
     config.db_user,

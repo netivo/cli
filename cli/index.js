@@ -17,13 +17,13 @@ let action = null;
 if(typeof actionName !== "undefined") {
     action = actionName;
 } else {
-    action = 'create-project';
+    action = 'start-project';
 }
 
 console.log(action, actionName);
 
 if(hasActionFile(action)) {
-    spawn.sync('node', [fromRoot(actionName), ...args], {stdio: 'inherit'});
+    spawn.sync('node', [fromRoot(action), ...args], {stdio: 'inherit'});
 } else {
-    console.log('There is no such action to execute. Possible actions are: create-project, add-metabox, enable-woocommerce');
+    console.log('There is no such action to execute. Possible actions are: start-project, create-project, add-metabox, enable-woocommerce');
 }

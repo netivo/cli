@@ -35,6 +35,133 @@ async function handleNewProject() {
     return '';
 }
 
+async function updateProjectConfigs(projectName, projectDetails) {
+    log.log('Updating project configuration files...');
+    
+    // Update package.json
+    const packageJsonPath = path.join(projectName, 'package.json');
+    if (fs.existsSync(packageJsonPath)) {
+        const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
+        packageJson.name = projectName;
+        fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
+    }
+
+    // Update netivo.json
+    const netivoJsonPath = path.join(projectName, 'netivo.json');
+    if (fs.existsSync(netivoJsonPath)) {
+        const netivoJson = JSON.parse(fs.readFileSync(netivoJsonPath, 'utf-8'));
+        netivoJson.project_name = projectDetails.projectTitle;
+        netivoJson.namespace = projectDetails.namespace;
+        fs.writeFileSync(netivoJsonPath, JSON.stringify(netivoJson, null, 2));
+    }
+
+    // Update composer.json
+    const composerJsonPath = path.join(projectName, 'composer.json');
+    if (fs.existsSync(composerJsonPath)) {
+        const composerJson = JSON.parse(fs.readFileSync(composerJsonPath, 'utf-8'));
+        composerJson.name = `netivo/${projectName}`;
+        
+        if (composerJson.autoload && composerJson.autoload['psr-4']) {
+            // Add new namespace (don't remove old ones)
+            const fullNamespace = `Netivo\\${projectDetails.namespace}\\Theme\\`;
+            composerJson.autoload['psr-4'][fullNamespace] = `src/${projectDetails.namespace}`;
+        }
+        
+        fs.writeFileSync(composerJsonPath, JSON.stringify(composerJson, null, 2));
+    }
+
+    // Create src/<namespace> folder if not exists
+    const srcNamespacePath = path.join(projectName, 'src', projectDetails.namespace);
+    if (!fs.existsSync(srcNamespacePath)) {
+        fs.mkdirSync(srcNamespacePath, { recursive: true });
+    }
+
+    // Update assets.config.php
+    const assetsConfigPath = path.join(projectName, 'config', 'assets.config.php');
+    if (fs.existsSync(assetsConfigPath)) {
+        let assetsConfigContent = fs.readFileSync(assetsConfigPath, 'utf-8');
+        
+        // Match 'file' => 'something.js' or 'file' => 'something.css'
+        // and replace the prefix while preserving any suffixes
+        const oldPrefix = 'netivo-woocommerce';
+        assetsConfigContent = assetsConfigContent.replace(/(['"]file['"]\s*=>\s*)(['"])([^'"]+)\.(js|css)\2/g, (match, arrow, quote, filePath, ext) => {
+            const parts = filePath.split('/');
+            const filename = parts.pop();
+            const directory = parts.join('/');
+
+            if (filename.startsWith(oldPrefix)) {
+                const suffix = filename.substring(oldPrefix.length);
+                const newFilename = projectName + suffix;
+                const newPath = directory ? `${directory}/${newFilename}.${ext}` : `${newFilename}.${ext}`;
+                return `${arrow}${quote}${newPath}${quote}`;
+            }
+
+            return match;
+        });
+        fs.writeFileSync(assetsConfigPath, assetsConfigContent);
+    }
+
+    // Update .gitignore
+    const gitignorePath = path.join(projectName, '.gitignore');
+    const gitignoreRule = `dist/${projectName}*.*`;
+    if (fs.existsSync(gitignorePath)) {
+        let gitignoreContent = fs.readFileSync(gitignorePath, 'utf-8');
+        if (!gitignoreContent.includes(gitignoreRule)) {
+            gitignoreContent += `\n${gitignoreRule}\n`;
+            fs.writeFileSync(gitignorePath, gitignoreContent);
+            log.log(`Added ${gitignoreRule} to .gitignore`);
+        }
+    } else {
+        fs.writeFileSync(gitignorePath, `${gitignoreRule}\n`);
+        log.log(`Created .gitignore with ${gitignoreRule}`);
+    }
+}
+
+function generateEnvFile(projectName) {
+    const envPath = path.join(projectName, '.env');
+    const dbName = projectName.substring(0, 3).toLowerCase();
+    
+    const envContent = [
+        `PROJECT_NAME=${projectName}`,
+        `WORDPRESS_HOST=${projectName}.local.netivo.pl`,
+        `MYSQL_DB=${dbName}`,
+        `MYSQL_USER=${dbName}`,
+        `MYSQL_PASSWORD=${dbName}`,
+        `MYSQL_ROOT_PASSWORD=${dbName}`
+    ].join('\n') + '\n';
+
+    fs.writeFileSync(envPath, envContent);
+    log.log('Generated .env file.');
+}
+
+async function runStarterThemeInstall(projectName) {
+    const installResponse = await prompts([
+        {
+            type: 'confirm',
+            name: 'runInstall',
+            message: 'Do you want to run npm install, npm run build and composer install?',
+            initial: true
+        }
+    ]);
+
+    if (installResponse.runInstall) {
+        log.log('Running npm install...');
+        spawn.sync('npm', ['install'], { stdio: 'inherit', cwd: projectName });
+
+        log.log('Running npm run build...');
+        spawn.sync('npm', ['run', 'build'], { stdio: 'inherit', cwd: projectName });
+
+        const composerLockPath = path.join(projectName, 'composer.lock');
+        if (fs.existsSync(composerLockPath)) {
+            log.log('Removing composer.lock...');
+            fs.unlinkSync(composerLockPath);
+        }
+
+        log.log('Running composer install...');
+        spawn.sync('composer', ['install'], { stdio: 'inherit', cwd: projectName });
+    }
+}
+
 async function handleStarterTheme() {
     const themeResponse = await prompts([
         {
@@ -87,43 +214,9 @@ async function handleStarterTheme() {
     ]);
 
     if (projectDetails.projectTitle && projectDetails.namespace) {
-        log.log('Updating project configuration files...');
-        
-        // Update package.json
-        const packageJsonPath = path.join(projectName, 'package.json');
-        if (fs.existsSync(packageJsonPath)) {
-            const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
-            packageJson.name = projectName;
-            fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
-        }
-
-        // Update netivo.json
-        const netivoJsonPath = path.join(projectName, 'netivo.json');
-        if (fs.existsSync(netivoJsonPath)) {
-            const netivoJson = JSON.parse(fs.readFileSync(netivoJsonPath, 'utf-8'));
-            netivoJson.project_name = projectDetails.projectTitle;
-            netivoJson.namespace = projectDetails.namespace;
-            fs.writeFileSync(netivoJsonPath, JSON.stringify(netivoJson, null, 2));
-        }
-
-        // Update composer.json
-        const composerJsonPath = path.join(projectName, 'composer.json');
-        if (fs.existsSync(composerJsonPath)) {
-            const composerJson = JSON.parse(fs.readFileSync(composerJsonPath, 'utf-8'));
-            composerJson.name = `netivo/${projectName}`;
-            
-            if (composerJson.autoload && composerJson.autoload['psr-4']) {
-                // Remove old Netivo namespace if exists (it might be different)
-                const oldNamespaces = Object.keys(composerJson.autoload['psr-4']).filter(ns => ns.startsWith('Netivo\\'));
-                oldNamespaces.forEach(ns => delete composerJson.autoload['psr-4'][ns]);
-                
-                // Add new namespace
-                const fullNamespace = `Netivo\\${projectDetails.namespace}\\Theme\\`;
-                composerJson.autoload['psr-4'][fullNamespace] = 'src/Theme';
-            }
-            
-            fs.writeFileSync(composerJsonPath, JSON.stringify(composerJson, null, 2));
-        }
+        await updateProjectConfigs(projectName, projectDetails);
+        generateEnvFile(projectName);
+        await runStarterThemeInstall(projectName);
     }
 
     log.log('Initializing git repository...');

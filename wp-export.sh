@@ -7,6 +7,7 @@ DEFAULT_EXCLUDES=(
     "*_log"
     "cache"
     ".git"
+    "wp-files-export.sh"
 )
 
 # Enable alias expansion for non-interactive shell
@@ -40,4 +41,7 @@ for exclude in "${DEFAULT_EXCLUDES[@]}"; do
     exclude_params+=" --exclude='$exclude'"
 done
 
-tar -czf ./backup-files.tar.gz $exclude_params .
+tar -czf ./backup-netivo.tar.gz $exclude_params .
+
+rm backup_db.sql
+rm wp-export.sh

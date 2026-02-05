@@ -22,6 +22,8 @@ In place of operation you must provide one of the following actions:
 - `add-block` - Action which creates gutenberg block in WordPress project
 - `create-dev` - Action which creates development site on server with cPanel
 - `global` - Action to set up global variables for the cli
+- `issue-certificate` - Action to issue Let's Encrypt certificate for the local domain (domain dns zone must be manageable on dev server)
+- `start-project` - Action to start a project from scratch or from GitHub template
 
 Default action is: `create-project`
 

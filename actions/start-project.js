@@ -217,6 +217,7 @@ async function handleStarterTheme() {
         await updateProjectConfigs(projectName, projectDetails);
         generateEnvFile(projectName);
         await runStarterThemeInstall(projectName);
+        await issueCertificate(projectName + '.local.netivo.pl', projectName);
     }
 
     log.log('Initializing git repository...');
@@ -296,6 +297,17 @@ async function handleDevSite(projectName) {
     if (projectName) {
         args.push(`--name=${projectName}`);
     }
+    spawn.sync('node', [createDevPath, ...args], { stdio: 'inherit' });
+}
+
+async function issueCertificate(domain, dir) {
+    log.log('Generating Let\'s Encrypt certificate...');
+    const createDevPath = path.join(__dirname, 'issue-certificate.js');
+    let args = [
+      '--domain=' + domain,
+      '--out=' + dir,
+      '--email=michal.swiatek@netivo.pl'
+    ];
     spawn.sync('node', [createDevPath, ...args], { stdio: 'inherit' });
 }
 

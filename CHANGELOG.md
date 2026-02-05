@@ -1,5 +1,9 @@
 # Netivo CLI Changelog
 
+## Version 1.4
+- Added action for starting a project from scratch or from a GitHub template
+- Added action for Let's Encrypt SSL certificate generation for a local domain
+
 ## Version 1.3
 - Added global configuration with dev connection settings
 - Added option for creating a development site on cPanel

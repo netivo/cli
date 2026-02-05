@@ -25,7 +25,7 @@ function getApiConfig(cfg) {
   return {
     host: process.env.CPANEL_API_HOST || cfg.cpanel_api_host || cfg.api_host || '',
     user: process.env.CPANEL_API_USER || cfg.cpanel_api_user || cfg.api_user || '',
-    token: process.env.CPANEL_API_TOKEN || cfg.cpanel_api_token || cfg.api_token || 'UWQCH8KI3TUHBKM5W95PE4A8SHTCK9VU'
+    token: process.env.CPANEL_API_TOKEN || cfg.cpanel_api_token || cfg.api_token || ''
   };
 }
 

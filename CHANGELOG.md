@@ -1,5 +1,10 @@
 # Netivo CLI Changelog
 
+## Version 1.4.2
+- Added name argument to create-dev command
+- Fixed let's encrypt SSL certificate generation target directory
+- Providing a name during to dev creation during start-project command
+
 ## Version 1.4.1 
 - Added new .env variables to match a new core theme version
 

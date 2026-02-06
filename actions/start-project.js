@@ -316,7 +316,7 @@ async function issueCertificate(domain, dir) {
     const createDevPath = path.join(__dirname, 'issue-certificate.js');
     let args = [
       '--domain=' + domain,
-      '--out=' + dir,
+      '--out=' + dir + '/proxy/certs/',
       '--email=michal.swiatek@netivo.pl'
     ];
     spawn.sync('node', [createDevPath, ...args], { stdio: 'inherit' });

@@ -14,6 +14,14 @@ if(existsSync(config_file)) {
   global_config = JSON.parse(global_config);
 }
 
+function parseArgs(argv) {
+  const args = {};
+  for (const arg of argv.slice(2)) {
+    if (arg.startsWith('--name=')) args.name = arg.split('=')[1];
+  }
+  return args;
+}
+
 const config = {
   name: '',
   title: '',
@@ -23,6 +31,11 @@ const config = {
   user: '',
   port: ''
 };
+
+let args = parseArgs(process.argv);
+if(args.hasOwnProperty('name') && args.name !== '') {
+  config.name = args.name;
+}
 
 if(global_config.hasOwnProperty('private_key') && global_config.private_key !== '') {
   config.private_key = global_config.private_key;

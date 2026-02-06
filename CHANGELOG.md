@@ -1,5 +1,8 @@
 # Netivo CLI Changelog
 
+## Version 1.4.1 
+- Added new .env variables to match a new core theme version
+
 ## Version 1.4
 - Added action for starting a project from scratch or from a GitHub template
 - Added action for Let's Encrypt SSL certificate generation for a local domain

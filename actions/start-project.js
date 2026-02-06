@@ -118,16 +118,27 @@ async function updateProjectConfigs(projectName, projectDetails) {
 }
 
 function generateEnvFile(projectName) {
+    const generateRandomString = (length) => {
+        return Math.random().toString(36).substring(2, 2 + length);
+    };
+    const shuffle = (str) => str.split('').sort(() => 0.5 - Math.random()).join('');
+
     const envPath = path.join(projectName, '.env');
     const dbName = projectName.substring(0, 3).toLowerCase();
-    
+
+    const dbPrefix = ('w' + shuffle(projectName) + generateRandomString(2)).substring(0, 10);
+
     const envContent = [
         `PROJECT_NAME=${projectName}`,
         `WORDPRESS_HOST=${projectName}.local.netivo.pl`,
+        `DEVELOPMENT_HOST=${projectName}.sm2.netivo.pl`,
         `MYSQL_DB=${dbName}`,
         `MYSQL_USER=${dbName}`,
         `MYSQL_PASSWORD=${dbName}`,
-        `MYSQL_ROOT_PASSWORD=${dbName}`
+        `MYSQL_ROOT_PASSWORD=${dbName}`,
+        `MYSQL_PREFIX=${dbPrefix}_`,
+        `LOCAL_UPLOADS_PATH=://\${WORDPRESS_HOST}/wp-content/uploads/`,
+        `DEVELOPMENT_UPLOADS_PATH=://\${DEVELOPMENT_HOST}/wp-content/uploads/`
     ].join('\n') + '\n';
 
     fs.writeFileSync(envPath, envContent);

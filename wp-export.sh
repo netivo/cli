@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 DEFAULT_EXCLUDES=(
     "wp-content/uploads"
@@ -37,11 +38,25 @@ fi
 
 wp db export backup_db.sql --add-drop-table --single-transaction=true --disable-keys=true --quick=true
 
+tar_params=()
 for exclude in "${DEFAULT_EXCLUDES[@]}"; do
-    exclude_params+=" --exclude='$exclude'"
+    tar_params+=(--exclude="$exclude")
 done
 
-tar -czf ./backup-netivo.tar.gz $exclude_params .
+set +e
+tar -czf ./backup-netivo.tar.gz "${tar_params[@]}" .
+tar_exit_code=$?
+set -e
+
+if [ $tar_exit_code -ne 0 ] && [ $tar_exit_code -ne 1 ]; then
+    echo "ERROR: tar command failed with exit code $tar_exit_code"
+    exit 1
+fi
+
+if [ $tar_exit_code -eq 1 ]; then
+    echo "WARNING: Some files changed during archiving (tar exit code 1), but backup created successfully."
+fi
+
 
 rm backup_db.sql
 rm wp-export.sh
